@@ -31,10 +31,9 @@ while True:
     if len(response_data) == 0:
         break
     data.extend(response_data)
+    if (page - 1) % 100 == 0:
+        print(f'Retrieved page {page - 1} of data')
     page += 1
-
-    # Add progress tracking
-    print(f'Retrieved page {page - 1} of data')
 
 # Connect to the database
 # create the engine
@@ -53,68 +52,68 @@ k = 10
 # Iterate through each game in the data
 for i, item in enumerate(data):
     try:
-        p1_faction = item['p1_faction']
-        p2_faction = item['p2_faction']
+        p1_id = item['p1_id']
+        p1_name = item['p1_name']
+        p2_id = item['p2_id']
+        p2_name = item['p2_name']
         p1_points = item['p1_points']
         p2_points = item['p2_points']
     except KeyError:
-        # Skip iteration if either p1_faction or p2_faction is not found in the data
+        # Skip iteration if either p1 or p2 data is not found
         continue
 
-    # Check if both factions are the same, if so, skip this game
-    if p1_faction == p2_faction:
+    # Check if both players are the same, if so, skip this game
+    if p1_id == p2_id:
         continue
 
-    # Initialize ELO and win/loss records for each faction if they haven't been seen before
-    if p1_faction not in elo:
-        elo[p1_faction] = 1000
-        wins[p1_faction] = 0
-        losses[p1_faction] = 0
-        entries[p1_faction] = 0
-    if p2_faction not in elo:
-        elo[p2_faction] = 1000
-        wins[p2_faction] = 0
-        losses[p2_faction] = 0
-        entries[p2_faction] = 0
+    # Initialize ELO and win/loss records for each player if they haven't been seen before
+    if p1_id not in elo:
+        elo[p1_id] = 1000
+        wins[p1_id] = 0
+        losses[p1_id] = 0
+        entries[p1_id] = 0
+    if p2_id not in elo:
+        elo[p2_id] = 1000
+        wins[p2_id] = 0
+        losses[p2_id] = 0
+        entries[p2_id] = 0
 
     # Calculate the ELO rating changes based on the result of the game
-    expected_score_p1 = 1 / (1 + 10 ** ((elo[p2_faction] - elo[p1_faction]) / 400))
-    expected_score_p2 = 1 / (1 + 10 ** ((elo[p1_faction] - elo[p2_faction]) / 400))
+    expected_score_p1 = 1 / (1 + 10 ** ((elo[p2_id] - elo[p1_id]) / 400))
+    expected_score_p2 = 1 / (1 + 10 ** ((elo[p1_id] - elo[p2_id]) / 400))
     if p1_points == 0:
-        elo[p1_faction] = elo[p1_faction] - k * (0 - expected_score_p1)
-        elo[p2_faction] = elo[p2_faction] + k * (1 - expected_score_p2)
-        wins[p2_faction] += 1
-        losses[p1_faction] += 1
+        elo[p1_id] = elo[p1_id] - k * (0 - expected_score_p1)
+        elo[p2_id] = elo[p2_id] + k * (1 - expected_score_p2)
+        wins[p2_id] += 1
+        losses[p1_id] += 1
     elif p2_points == 0:
-        elo[p1_faction] = elo[p1_faction] + k * (1 - expected_score_p1)
-        elo[p2_faction] = elo[p2_faction] - k * (0 - expected_score_p2)
-        wins[p1_faction] += 1
-        losses[p2_faction] += 1
+        elo[p1_id] = elo[p1_id] + k * (1 - expected_score_p1)
+        elo[p2_id] = elo[p2_id] - k * (0 - expected_score_p2)
+        wins[p1_id] += 1
+        losses[p2_id] += 1
 
-    # Increment the number of entries for both factions
-    entries[p1_faction] += 1
-    entries[p2_faction] += 1
+    # Increment the number of entries for both players
+    entries[p1_id] += 1
+    entries[p2_id] += 1
 
     # Display progress
     if i % 100 == 0:
         print(f'Processed {i} games')
 
-# Insert the updated ELO ratings, win/loss records, and faction entries into the database
-for faction in elo:
+
+# Insert the updated ELO ratings, win/loss records, and player entries into the database
+for player in elo:
     session.execute("""
-        INSERT INTO faction (factionName, elo, factionWins, factionLosses, factionEntries)
-        VALUES (:factionName, :elo, :factionWins, :factionLosses, :factionEntries)
+        INSERT INTO players (tjpPlayerID, playerName, elo, playerWins, playerLosses, playerEntries)
+        VALUES (:tjpPlayerID, :playerName, :elo, :playerWins, :playerLosses, :playerEntries)
         """, {
-        'factionName': faction,
-        'elo': elo[faction],
-        'factionWins': wins[faction],
-        'factionLosses': losses[faction],
-        'factionEntries': entries[faction]
-})
-
-if i % 100 == 0:
-    print(f'Processed {i} games')
-
+        'tjpPlayerID': player,
+        'playerName': playerName[player],
+        'elo': elo[player],
+        'playerWins': wins[player],
+        'playerLosses': losses[player],
+        'playerEntries': entries[player]
+    })
 
 # Commit the changes and close the session
 session.commit()
