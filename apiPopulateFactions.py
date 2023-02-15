@@ -18,6 +18,22 @@ data = []
 # Keep a dictionary to store the ELO scores for each faction
 elo_scores = {}
 
+
+# Connect to the database
+# create the engine
+engine = create_engine(connection_string)
+print("Connection successful.")
+Session = sessionmaker(bind=engine)
+session = Session()
+
+# Initialize dictionaries for ELO ratings and win/loss records
+elo = {}
+wins = {}
+losses = {}
+entries = {}
+k = 10
+
+
 # Iterate through all available pages
 while True:
     try:
@@ -35,19 +51,6 @@ while True:
         print(f'Retrieved page {page - 1} of data')
     page += 1
 
-# Connect to the database
-# create the engine
-engine = create_engine(connection_string)
-print("Connection successful.")
-Session = sessionmaker(bind=engine)
-session = Session()
-
-# Initialize dictionaries for ELO ratings and win/loss records
-elo = {}
-wins = {}
-losses = {}
-entries = {}
-k = 10
 
 # Iterate through each game in the data
 for i, item in enumerate(data):
@@ -101,19 +104,19 @@ for i, item in enumerate(data):
         print(f'Processed {i} games')
 
 
-# Insert the updated ELO ratings, win/loss records, and player entries into the database
-for player in elo:
+# Insert the updated ELO ratings, win/loss records, and faction entries into the database
+for faction in elo:
     session.execute("""
-        INSERT INTO players (tjpPlayerID, playerName, elo, playerWins, playerLosses, playerEntries)
-        VALUES (:tjpPlayerID, :playerName, :elo, :playerWins, :playerLosses, :playerEntries)
+        INSERT INTO faction (factionName, elo, factionWins, factionLosses, factionEntries)
+        VALUES (:factionName, :elo, :factionWins, :factionLosses, :factionEntries)
         """, {
-        'tjpPlayerID': player,
-        'playerName': playerName[player],
-        'elo': elo[player],
-        'playerWins': wins[player],
-        'playerLosses': losses[player],
-        'playerEntries': entries[player]
-    })
+        'factionName': faction,
+        'elo': elo[faction],
+        'factionWins': wins[faction],
+        'factionLosses': losses[faction],
+        'factionEntries': entries[faction]
+})
+
 
 # Commit the changes and close the session
 session.commit()

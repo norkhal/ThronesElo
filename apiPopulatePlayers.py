@@ -15,8 +15,29 @@ url = "https://thrones.tourneygrounds.com/api/v3/games"
 page = 1
 data = []
 
+
+# Keep a dictionary to store the ELO scores for each faction
+elo_scores = {}
+
+
+# Connect to the database
+# create the engine
+engine = create_engine(connection_string)
+print("Connection successful.")
+Session = sessionmaker(bind=engine)
+session = Session()
+
+# Initialize dictionaries for ELO ratings and win/loss records
+elo = {}
+wins = {}
+losses = {}
+entries = {}
+k = 10
+
+
 # Iterate through all available pages
-while True:
+# while True:
+for i in range(10):
     try:
         response = requests.get(url, params={'page': page})
         response.raise_for_status()
@@ -32,20 +53,6 @@ while True:
         print(f'Retrieved page {page - 1} of data')
     page += 1
 
-# Connect to the database
-# create the engine
-engine = create_engine(connection_string)
-print("Connection successful.")
-Session = sessionmaker(bind=engine)
-session = Session()
-
-
-# Initialize dictionaries for ELO ratings and win/loss records
-elo = {}
-wins = {}
-losses = {}
-entries = {}
-k = 10
 
 # Iterate through each game in the data
 for i, item in enumerate(data):
@@ -64,6 +71,18 @@ for i, item in enumerate(data):
     if p1_id == p2_id:
         continue
 
+    # Initialize ELO and win/loss records for each player if they haven't been seen before
+    if p1_id not in elo:
+        elo[p1_id] = 1000
+        wins[p1_id] = 0
+        losses[p1_id] = 0
+        entries[p1_id] = 0
+    if p2_id not in elo:
+        elo[p2_id] = 1000
+        wins[p2_id] = 0
+        losses[p2_id] = 0
+        entries[p2_id] = 0
+
     # Calculate the ELO rating changes based on the result of the game
     expected_score_p1 = 1 / (1 + 10 ** ((elo[p2_id] - elo[p1_id]) / 400))
     expected_score_p2 = 1 / (1 + 10 ** ((elo[p1_id] - elo[p2_id]) / 400))
@@ -81,6 +100,11 @@ for i, item in enumerate(data):
     # Increment the number of entries for both players
     entries[p1_id] += 1
     entries[p2_id] += 1
+
+    data.append({'tjpPlayerID': p1_id, 'playerName': p1_name, 'elo': elo[p1_id], 'playerWins': wins[p1_id],
+                 'playerLosses': losses[p1_id], 'playerEntries': entries[p1_id]})
+    data.append({'tjpPlayerID': p2_id, 'playerName': p2_name, 'elo': elo[p2_id], 'playerWins': wins[p2_id],
+                 'playerLosses': losses[p2_id], 'playerEntries': entries[p2_id]})
 
     # Display progress
     if i % 100 == 0:
