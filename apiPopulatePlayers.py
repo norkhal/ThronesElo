@@ -63,6 +63,8 @@ for i, item in enumerate(data):
         p2_name = item['p2_name']
         p1_points = item['p1_points']
         p2_points = item['p2_points']
+        player_id = item['player_id']
+
     except KeyError:
         # Skip iteration if either p1 or p2 data is not found
         continue
@@ -111,18 +113,30 @@ for i, item in enumerate(data):
         print(f'Processed {i} games')
 
 
-# Insert the updated ELO ratings, win/loss records, and player entries into the database
-for player in elo:
+# Insert the updated ELO ratings, win/loss records, and player entries into the database for p1
     session.execute("""
         INSERT INTO players (tjpPlayerID, playerName, elo, playerWins, playerLosses, playerEntries)
         VALUES (:tjpPlayerID, :playerName, :elo, :playerWins, :playerLosses, :playerEntries)
         """, {
-        'tjpPlayerID': player,
-        'playerName': playerName[player],
-        'elo': elo[player],
-        'playerWins': wins[player],
-        'playerLosses': losses[player],
-        'playerEntries': entries[player]
+        'tjpPlayerID': p1_id,
+        'playerName': p1_name,
+        'elo': elo[p1_id],
+        'playerWins': wins[p1_id],
+        'playerLosses': losses[p1_id],
+        'playerEntries': entries[p1_id]
+    })
+
+# Insert the updated ELO ratings, win/loss records, and player entries into the database for p2
+    session.execute("""
+        INSERT INTO players (tjpPlayerID, playerName, elo, playerWins, playerLosses, playerEntries)
+        VALUES (:tjpPlayerID, :playerName, :elo, :playerWins, :playerLosses, :playerEntries)
+        """, {
+        'tjpPlayerID': p2_id,
+        'playerName': p2_name,
+        'elo': elo[p2_id],
+        'playerWins': wins[p2_id],
+        'playerLosses': losses[p2_id],
+        'playerEntries': entries[p2_id]
     })
 
 # Commit the changes and close the session
